@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  labels:
+    app: go-sample
+  name: go-sample
+spec:
+  failedBuildsHistoryLimit: 3
+  nodeSelector: null
+  postCommit: {}
+  resources: {}
+  runPolicy: Serial
+  source:
+    git:
+      uri: 'https://github.com/snowdeer/openshift-go-sample.git'
+    type: Git
+  strategy:
+    dockerStrategy:
+      from:
+        kind: DockerImage
+        name: 'ubuntu:latest'
+        
+    type: Docker    
+  successfulBuildsHistoryLimit: 5 
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'go-sample:latest'
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: go-sample
+  labels:
+    app: go-sample
+spec:
+  template:
+    metadata:
+      labels:
+        app: go-sample
+    spec:
+      containers:
+      - image:  snowdeer/go-sample:latest
+        name: go-sample
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-sample
+  labels:
+    app: go-sample
+spec:
+  ports:
+  - name: go-sample-port1
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  - name: go-sample-port2
+    port: 8888
+    protocol: TCP
+    targetPort: 8888
+  selector:
+    app: go-sample
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Route
+metadata:
+  name: go-sample
+  labels:
+    app: go-sample
+spec:
+  port: 
+    targetPort: go-sample-port1
+  to:
+    kind: Service
+    name: go-sample
+    weight: 100
